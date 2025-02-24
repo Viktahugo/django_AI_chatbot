@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CHAT BOT</title> 
+    <style>
+        body { font-family: sans-serif; }
+        #chat-container { width: 80%; margin: 20px auto; border: 1px solid #ccc; padding: 10px; }
+        #chat-log { height: 300px; overflow-y: scroll; border: 1px solid #eee; padding: 5px; }
+        #user-input { width: 70%; padding: 5px; }
+        #send-button { padding: 5px 10px;background:green;color:#fff; }
+        .user-message { text-align: right; color: blue;padding:20px;margin:5px;border:1px solid #ddd }
+        .bot-message { text-align: left; color: green;padding:20px;margin:5px;border:1px solid #ddd }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <h1>Chatbot</h1>
+        <div id="chat-log"></div>
+        <input type="text" id="user-input" required placeholder="Type your message...">
+        <button id="send-button">Send</button>
+    </div>
+
+    <script>
+        const chatLog = document.getElementById('chat-log');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+
+        sendButton.addEventListener('click', sendMessage);
+
+        userInput.addEventListener("keyup", function(event) {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            sendMessage();
+          }
+        });
+
+
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (message) {
+                appendMessage('user-message', message);
+                userInput.value = '';
+
+                fetch('/chatbot/chat/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')  // Important for CSRF protection
+                    },
+                    body: JSON.stringify({ message: message })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    appendMessage('bot-message', data.response);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    appendMessage('bot-message', 'Error communicating with the chatbot.');
+                });
+            }
+        }
+
+        function appendMessage(senderClass, message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add(senderClass);
+            messageDiv.textContent = message;
+            chatLog.appendChild(messageDiv);
+            chatLog.scrollTop = chatLog.scrollHeight; // Scroll to bottom
+        }
+
+        // CSRF token helper function
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+    </script>
+</body>
+</html>
